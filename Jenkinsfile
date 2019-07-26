@@ -1,45 +1,30 @@
 pipeline {
-  environment {
-    registry = "pradeepasakthi/nodedocker"
-    registryCredential = 'dockerhub'
-  }
-  agent any
-  stages {
-    stage('Cloning Git') {
-      steps {
-        git 'https://github.com/ppradeepa/testjenkins.git'
-      }
-    }
-     stage('Build') {
-       steps {
-         sh 'npm install'
-       }
-    }
-    stage('Test') {
-      steps {
-        sh 'npm test'
-      }
-    }
-    stage('Building image') {
-      steps{
-        script {
-          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+    agent {
+        docker {
+            image 'node:10-alpine'
+            args '-p 8000:8000'
         }
-      }
     }
-    stage('Deploy Image') {
-      steps{
-         script {
-            docker.withRegistry( '', registryCredential ) {
-            dockerImage.push()
-          }
+    environment { 
+        CI = 'true'
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'npm install'
+            }
         }
-      }
+        stage('Test') {
+            steps {
+                sh './jenkins/scripts/test.sh'
+            }
+        }
+        stage('Deliver') { 
+            steps {
+                sh './jenkins/scripts/deliver.sh' 
+                input message: 'Finished using the web site? (Click "Proceed" to continue)' 
+                sh './jenkins/scripts/kill.sh' 
+            }
+        }
     }
-    stage('Remove Unused docker image') {
-      steps{
-        sh "docker rmi $registry:$BUILD_NUMBER"
-      }
-    }
-  }
 }
