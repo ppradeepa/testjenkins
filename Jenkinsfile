@@ -1,10 +1,21 @@
 pipeline {
-    agent { docker { image 'node:10-alpine' } }
-    stages {
-        stage('build') {
-            steps {
-                sh 'npm --version'
-            }
-        }
+  environment {
+    registry = "pradeepasakthi/nodedocker"
+    registryCredential = 'dockerhub'
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/ppradeepa/testjenkins.git'
+      }
     }
+    stage('Building image') {
+      steps{
+        script {
+          docker.build registry + ":$BUILD_NUMBER"
+        }
+      }
+    }
+  }
 }
